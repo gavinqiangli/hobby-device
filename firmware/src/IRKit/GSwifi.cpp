@@ -1212,6 +1212,12 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
     command(cmd, GSCOMMANDMODE_DNSLOOKUP);
 #endif
 
+    // modified by eqiglii 2015-12-12
+    if ( strstr (path, "proxy.php") ) {  // this means it is my temperature reporting service, which should go via my proxy server
+      sprintf( ipaddr_, "%s", "192.168.0.24" );
+    }    
+    // end by eqiglii 2015-12-12
+    
     // don't fail fatally on dnslookup failure,
     // we cache our server's ipaddress anyway
     // it happens randomly
@@ -1229,7 +1235,13 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
 #ifdef TESTER
     strcpy( cmd+9+strlen(ipaddr_), ",80");
 #else
-    strcpy( cmd+9+strlen(ipaddr_), ",443");
+    // modified by eqiglii 2015-12-12
+    if ( strstr (path, "proxy.php") ) {  // this means it is my temperature reporting service, which should go via my proxy server
+      strcpy( cmd+9+strlen(ipaddr_), ",80");
+    }
+    else { // this means it is normal IRKit post data
+      strcpy( cmd+9+strlen(ipaddr_), ",443");
+    }
 #endif
 
     connected_cid_ = CID_UNDEFINED;
@@ -1250,9 +1262,12 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
     handlers_[ cid ] = handler;
 
 #ifndef TESTER
-    cmd = PB("AT+SSLOPEN=%,cacert",1);
-    cmd[ 11 ] = xid;
-    command(cmd, GSCOMMANDMODE_NORMAL);
+    // modified by eqiglii 2015-12-12
+    if ( strstr (path, "proxy.php") == NULL ) {  // this means it is normal IRKit post data, NOT my temperature reporting service
+      cmd = PB("AT+SSLOPEN=%,cacert",1);
+      cmd[ 11 ] = xid;
+      command(cmd, GSCOMMANDMODE_NORMAL);
+    }
 #endif
 
     // disable TCP_MAXRT and TCP_KEEPALIVE_X, because these commands takes some time to issue,
@@ -1301,8 +1316,17 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
     serial_->print(path);
     serial_->print(P(" HTTP/1.1\r\nUser-Agent: IRKit/"));
     serial_->println(version);
-
-    serial_->println("Host: " DOMAIN);
+    
+    // modified by eqiglii 2015-12-12
+    if ( strstr (path, "proxy.php") ) {  // this means it is my temperature reporting service, which should go via my proxy server
+      serial_->println("Host: 192.168.0.24");
+    }
+    else {  // this means it is normal IRKit service
+      serial_->println("Host: " DOMAIN);
+    }
+    // end by eqiglii 2015-12-12
+     
+    //serial_->println("Host: " DOMAIN);
 
     if (method == GSMETHOD_POST) {
         serial_->print(P("Content-Length: "));
@@ -1355,7 +1379,8 @@ char* GSwifi::hostname() {
 char* GSwifi::password() {
     // reuse index: 0 area
     // this should be safe if we immediately call `strcpy( target, password() )`
-    char *ret = PB("XXXX,XXXXXXXXXX", 0);
+    // char *ret = PB("XXXX,XXXXXXXXXX", 0); // 2015-11-28 eqiglii: replace XXXXXXXXXX with your irkit 10 digits wifi password
+    char *ret = PB("XXXX,1547131217", 0);
     return ret + 5; // we detect ^ this pattern in password replacer
 }
 

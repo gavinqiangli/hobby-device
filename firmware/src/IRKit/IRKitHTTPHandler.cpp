@@ -49,6 +49,7 @@ static bool has_valid_pass = false;
 
 #define POST_DOOR_BODY_LENGTH 61
 #define POST_KEYS_BODY_LENGTH 42
+#define POST_TEMPERATURE_BODY_LENGTH 53   // added by eqiglii 2015-12-15
 
 static void on_json_start() {
     HTTPLOG_PRINTLN("j<");
@@ -425,6 +426,7 @@ int8_t irkit_httpclient_post_messages_() {
                                 (const char*)sharedbuffer, IR_packedlength(),
                                 &on_post_messages_response,
                                 10 );
+    
     if (cid == polling_cid) {
         // we're polling on this cid, and our response handler is registered with this cid.
         // we already overwritten the response handler, so restart everything.
@@ -447,6 +449,47 @@ int8_t irkit_httpclient_post_messages() {
     }
     return cid;
 }
+
+
+// added by eqiglii 2015-12-13
+int8_t irkit_httpclient_post_temperature_(uint8_t temperature) {
+    // send http post request to LAN server  
+    char path[84];
+    sprintf(path, P("/proxy.php?url=https://irkitrestapi.appspot.com/_ah/api/helloworld/v1/postgreeting/%d"), 1);    
+
+    char body[POST_TEMPERATURE_BODY_LENGTH+1];
+    
+    // char array[6];
+    // dtostrf(temperature,5, 2, array); // this function works, but takes too much memory KB
+    // I know that the Arduino version of sprinf does not support floats, but we're sticking to INTs here so it is fine
+
+    sprintf(body, "irkit_id=%s&signal_content=%2d&signal_name=%s", gs.hostname(), temperature, "temp");    
+    //sprintf(body, "irkit_id=%s&signal_content=%s&signal_name=%s", gs.hostname(), "20.22", "temp");     
+    int8_t cid = gs.post(path, body, POST_TEMPERATURE_BODY_LENGTH, &on_post_messages_response,50 );   
+     
+    if (cid == polling_cid) {
+        // we're polling on this cid, and our response handler is registered with this cid.
+        // we already overwritten the response handler, so restart everything.
+        // HTTPLOG_PRINTLN("!E30");
+        wifi_hardware_reset();
+        return -1;
+    }
+    return cid;
+}
+
+// stack memory to initiate a HTTP request is not small;
+// do POST /p sequentially
+int8_t irkit_httpclient_post_temperature(uint8_t temperature) {
+    if (is_posting_message) {
+        return -1;
+    }
+    int8_t cid = irkit_httpclient_post_temperature_(temperature);
+    if (cid >= 0) {
+        is_posting_message = true; // this function is not called inside ISR; safe to set here
+    }
+    return cid;
+}
+// end by eqiglii 2015-12-13
 
 int8_t irkit_httpclient_post_keys() {
     // devicekey=[0-9A-F]{32}

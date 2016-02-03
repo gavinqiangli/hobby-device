@@ -144,6 +144,42 @@ void loop() {
 #endif
 
     // add your own code here!!
+    // 2015-11-28 eqiglii, adding temperature reading
+    /*
+    //getting the voltage reading from the temperature sensor
+    int reading = analogRead(A1);  
+    
+    // converting that reading to voltage, for 3.3v arduino use 3.3
+    float voltage = reading * 5.0;
+    voltage /= 1024.0; 
+    
+    // print out the voltage
+    // Serial.print(voltage); Serial.println(" volts");
+    
+    // now print out the temperature
+    // float temperatureC = (voltage - 0.5) * 100 ;  //converting from 10 mv per degree wit 500 mV offset
+                                                 //to degrees ((voltage - 500mV) times 100)
+ */   
+
+    // reporting every ten minutes
+    const unsigned long tenMinutes = 10 * 60 * 1000UL;
+    static unsigned long lastSampleTime = 0 - tenMinutes;  // initialize such that a reading is due the first time through loop()
+
+    unsigned long now = millis();
+    if (now - lastSampleTime >= tenMinutes)
+    {
+      lastSampleTime += tenMinutes;
+      // add code to take temperature reading here
+      uint8_t temperatureC = (analogRead(A1) * 0.00488 - 0.5) * 100 ;
+      //Serial.print(temperatureC); Serial.println(" degrees C");
+
+      int8_t cid = irkit_httpclient_post_temperature(temperatureC);   
+      if (cid >= 0) {
+          color.setLedColor( 0, 0, 1, true, 1 ); // received: blue blink for 1sec
+      }
+    } 
+
+    // 2015-11-28 eqiglii
 }
 
 void wifi_hardware_reset () {

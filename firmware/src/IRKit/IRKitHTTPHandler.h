@@ -26,6 +26,7 @@
 extern int8_t irkit_httpclient_post_door();
 extern int8_t irkit_httpclient_get_messages();
 extern int8_t irkit_httpclient_post_messages();
+extern int8_t irkit_httpclient_post_temperature(uint8_t temperature); // added by eqiglii 2015-12-13
 extern int8_t irkit_httpclient_post_keys();
 extern void   irkit_httpclient_start_polling(uint8_t delay);
 extern void   irkit_httpserver_register_handler();
