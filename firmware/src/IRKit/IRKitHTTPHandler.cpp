@@ -49,7 +49,7 @@ static bool has_valid_pass = false;
 
 #define POST_DOOR_BODY_LENGTH 61
 #define POST_KEYS_BODY_LENGTH 42
-#define POST_TEMPERATURE_BODY_LENGTH 53   // added by eqiglii 2015-12-15
+#define POST_TEMPERATURE_BODY_LENGTH 53
 
 static void on_json_start() {
     HTTPLOG_PRINTLN("j<");
@@ -405,23 +405,34 @@ static int8_t on_request(int8_t cid, int8_t routeid, GSwifi::GSREQUESTSTATE stat
 
 int8_t irkit_httpclient_post_door() {
     // devicekey=[0-9A-F]{32}&hostname=IRKit%%%%
-    char body[POST_DOOR_BODY_LENGTH+1];
-    sprintf(body, "devicekey=%s&hostname=%s", keys.getKey(), gs.hostname());
-    return gs.post( "/d", body, POST_DOOR_BODY_LENGTH, &on_post_door_response, 50 );
+    // send http post request to LAN server  
+    char path[75];
+    sprintf(path, P("/proxy.php?url=https://irkitrestapi.appspot.com/_ah/api/southbound/v1/door?")); // path must end up with "?", by eqiglii 2016-06-13
+    
+    char body[POST_DOOR_BODY_LENGTH+1+2];    // +2, due to change from "&" to "%26", eqiglii, 2016-06-13
+    sprintf(body, "devicekey=%s%shostname=%s", keys.getKey(),"%26",gs.hostname()); // in http url encoding, "&" must be replaced by "%26", by eqiglii 2016-06-13
+    Serial.println (body); // print log, added by eqiglii
+    //return gs.post( "/d", body, POST_DOOR_BODY_LENGTH, &on_post_door_response, 50 );
+    //return gs.post( "/_ah/api/southbound/v1/door?", body, POST_DOOR_BODY_LENGTH, &on_post_door_response, 50 );
+    return gs.post(path, body, POST_DOOR_BODY_LENGTH, &on_post_door_response, 50 );
 }
 
 int8_t irkit_httpclient_get_messages() {
     // /m?devicekey=C7363FDA0F06406AB11C29BA41272AE3&newer_than=4294967295
-    char path[68];
-    sprintf(path, P("/m?devicekey=%s&newer_than=%ld"), keys.getKey(), newest_message_id);
+    //char path[68];
+    //sprintf(path, P("/m?devicekey=%s&newer_than=%ld"), keys.getKey(), newest_message_id);
+    char path[109]; // added 29 chars path,12 chars messageid
+    sprintf(path, P("/_ah/api/southbound/v1/messages?devicekey=%s&newer_than=%ld"), keys.getKey(), newest_message_id);
     return gs.get(path, &on_get_messages_response, 50);
 }
 
 int8_t irkit_httpclient_post_messages_() {
     // post body is IR data, move devicekey parameter to query, for implementation simplicity
     // /p?devicekey=C7363FDA0F06406AB11C29BA41272AE3&freq=38
-    char path[54];
-    sprintf(path, P("/p?devicekey=%s&freq=%d"), keys.getKey(), IrCtrl.freq);
+    //char path[54];
+    //sprintf(path, P("/p?devicekey=%s&freq=%d"), keys.getKey(), IrCtrl.freq);
+    char path[83]; // added 29 chars path
+    sprintf(path, P("/_ah/api/southbound/v1/messages?devicekey=%s&freq=%d"), keys.getKey(), IrCtrl.freq);
     int8_t cid = gs.postBinary( path,
                                 (const char*)sharedbuffer, IR_packedlength(),
                                 &on_post_messages_response,
@@ -454,19 +465,20 @@ int8_t irkit_httpclient_post_messages() {
 // added by eqiglii 2015-12-13
 int8_t irkit_httpclient_post_temperature_(uint8_t temperature) {
     // send http post request to LAN server  
-    char path[84];
-    sprintf(path, P("/proxy.php?url=https://irkitrestapi.appspot.com/_ah/api/helloworld/v1/postgreeting/%d"), 1);    
+    char path[82];
+    sprintf(path, P("/proxy.php?url=https://irkitrestapi.appspot.com/_ah/api/southbound/v1/temperature?"));    // added "?" by eqiglii 2016-06-13
 
-    char body[POST_TEMPERATURE_BODY_LENGTH+1];
+    char body[POST_TEMPERATURE_BODY_LENGTH+1+4]; // +4, due to change the two "&" to "%26", eqiglii, 2016-06-13
     
     // char array[6];
     // dtostrf(temperature,5, 2, array); // this function works, but takes too much memory KB
     // I know that the Arduino version of sprinf does not support floats, but we're sticking to INTs here so it is fine
 
-    sprintf(body, "irkit_id=%s&signal_content=%2d&signal_name=%s", gs.hostname(), temperature, "temp");    
-    //sprintf(body, "irkit_id=%s&signal_content=%s&signal_name=%s", gs.hostname(), "20.22", "temp");     
+    sprintf(body, "irkit_id=%s%ssignal_content=%2d%ssignal_name=%s", gs.hostname(),"%26", temperature,"%26", "temp");    // change the two "&" to "%26", eqiglii 2016-06-13
+    
     int8_t cid = gs.post(path, body, POST_TEMPERATURE_BODY_LENGTH, &on_post_messages_response,50 );   
-     
+    //int8_t cid = gs.post("/_ah/api/southbound/v1/temperature?", body, POST_TEMPERATURE_BODY_LENGTH, &on_post_messages_response,50 );   // this never worked out!!! eqiglii 2016-06-14, don't try any more!!!
+    
     if (cid == polling_cid) {
         // we're polling on this cid, and our response handler is registered with this cid.
         // we already overwritten the response handler, so restart everything.
@@ -495,7 +507,11 @@ int8_t irkit_httpclient_post_keys() {
     // devicekey=[0-9A-F]{32}
     char body[POST_KEYS_BODY_LENGTH+1];
     sprintf(body, "devicekey=%s", keys.getKey());
-    int8_t result = gs.post( "/k",
+    /*int8_t result = gs.post( "/k",
+                             body, POST_KEYS_BODY_LENGTH,
+                             &on_post_keys_response,
+                             10 ); */
+    int8_t result = gs.post( "/_ah/api/southbound/v1/keys?",
                              body, POST_KEYS_BODY_LENGTH,
                              &on_post_keys_response,
                              10 );

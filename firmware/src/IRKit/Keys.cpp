@@ -59,6 +59,8 @@ void Keys::load()
 bool Keys::isCRCOK()
 {
     uint8_t crc = crc8( (uint8_t*)data, sizeof(KeysCRCed), CRC8INIT );
+    Serial.println (data->crc8); // added by eqiglii
+    Serial.println (crc);
     return (crc == data->crc8);
 }
 
@@ -290,7 +292,7 @@ int8_t Keys::put(char code)
 int8_t Keys::putDone()
 {
     if (filler.state != KeysFillerStateCRC) {
-        KEYLOG_PRINTLN("!E17");
+        //KEYLOG_PRINTLN("!E17");
         return -1;
     }
 
@@ -305,7 +307,8 @@ int8_t Keys::putDone()
     }
     else {
         dump();
-        KEYLOG_PRINTLN("!E16");
+        //KEYLOG_PRINTLN("!E16");
+        Serial.println("!E16"); // changed log method by eqiglii to display it on Serial monitor
         return -1;
     }
 }

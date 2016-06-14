@@ -23,7 +23,10 @@
 #ifndef __GSWIFI_CONST_H__
 #define __GSWIFI_CONST_H__
 
-#define DOMAIN "deviceapi.getirkit.com"
+// #define DOMAIN "deviceapi.getirkit.com"
+// changed by eqiglii 2016-02-08
+#define DOMAIN "irkitrestapi.appspot.com"
+// #define DOMAIN "raspberrypi.local" // this does NOT work
 
 #define GS_TIMEOUT             20 // [s]
 #define GS_TIMEOUT_LONG        50 // [s]

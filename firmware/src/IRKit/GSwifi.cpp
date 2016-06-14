@@ -1214,7 +1214,7 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
 
     // modified by eqiglii 2015-12-12
     if ( strstr (path, "proxy.php") ) {  // this means it is my temperature reporting service, which should go via my proxy server
-      sprintf( ipaddr_, "%s", "192.168.0.24" );
+      sprintf( ipaddr_, "%s", "192.168.0.18" ); // my raspberrypi IP address, it changes depending on connected home devices
     }    
     // end by eqiglii 2015-12-12
     
@@ -1225,11 +1225,12 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
         // but if it has not been resolved yet,
         // we must be not connected to internet,
         // let's show yellow blink on colorled
+        Serial.println ("DOMAIN is not resolved to ipaddr"); // print log, added by eqiglii
         clear();
         on_disconnect_();
         return -1;
     }
-
+    
     cmd = PB("AT+NCTCP=",1);
     strcpy( cmd+9, ipaddr_ );
 #ifdef TESTER
@@ -1319,7 +1320,8 @@ int8_t GSwifi::request(GSwifi::GSMETHOD method, const char *path, const char *bo
     
     // modified by eqiglii 2015-12-12
     if ( strstr (path, "proxy.php") ) {  // this means it is my temperature reporting service, which should go via my proxy server
-      serial_->println("Host: 192.168.0.24");
+      serial_->println("Host: 192.168.0.18"); // my raspberrypi IP address, it changes depending on connected home devices
+      //serial_->println("Host: raspberrypi.local"); // this does NOT work
     }
     else {  // this means it is normal IRKit service
       serial_->println("Host: " DOMAIN);
